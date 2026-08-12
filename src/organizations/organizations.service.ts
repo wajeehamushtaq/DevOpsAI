@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { Role } from '@prisma/client';
 
 export interface Organization {
   id: string;
@@ -7,20 +9,36 @@ export interface Organization {
 
 @Injectable()
 export class OrganizationsService {
-  private readonly organizations: Organization[] = [];
+  constructor(private readonly prisma: PrismaService) {}
 
-  create(name: string) {
-    const organization = {
-      id: crypto.randomUUID(),
-      name,
-    };
-
-    this.organizations.push(organization);
-
-    return organization;
+  async create(name: string) {
+    try {
+      return await this.prisma.organization.create({
+        data: {
+          name,
+        },
+      });
+    } catch (error) {
+      console.error('CREATE ORGANIZATION ERROR:', error);
+      throw error;
+    }
   }
 
-  findAll() {
-    return this.organizations;
+  async findAll() {
+    return this.prisma.organization.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async addMember(organizationId: string, userId: string, role: Role) {
+    return this.prisma.organizationMember.create({
+      data: {
+        organizationId,
+        userId,
+        role,
+      },
+    });
   }
 }
