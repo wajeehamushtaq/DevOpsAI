@@ -8,7 +8,7 @@ export class UsersController {
 
   @Post()
   create(@Body() dto: CreateUserDto) {
-    return this.userService.create(dto.email, dto.name);
+    return this.userService.create(dto.email, dto.name, dto.password);
   }
 
   @Get()
