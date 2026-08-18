@@ -25,6 +25,13 @@ enum IncidentStatus {
   RESOLVED
 }
 
+enum IncidentPriority {
+  P1
+  P2
+  P3
+  P4
+}
+
 model Organization {
   id        String   @id @default(uuid())
   name      String
@@ -46,17 +53,19 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  memberships OrganizationMember[]
-  auditLogs   AuditLog[]
+  memberships       OrganizationMember[]
+  auditLogs         AuditLog[]
+  createdIncidents  Incident[]           @relation("IncidentCreatedBy")
+  assignedIncidents Incident[]           @relation("IncidentAssignedTo")
 }
 
 model OrganizationMember {
-  id             String       @id @default(uuid())
+  id             String   @id @default(uuid())
   organizationId String
   userId         String
-  role           Role         @default(VIEWER)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  role           Role     @default(VIEWER)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -75,7 +84,7 @@ model Document {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   chunks       DocumentChunk[]
 
   @@index([organizationId])
@@ -100,15 +109,22 @@ model Incident {
   title          String
   description    String
   severity       IncidentSeverity @default(MEDIUM)
+  priority       IncidentPriority @default(P3)
   status         IncidentStatus   @default(OPEN)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
+  createdById    String
+  assignedToId   String?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation("IncidentCreatedBy", fields: [createdById], references: [id])
+  assignedTo   User?        @relation("IncidentAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
   agentRuns    AgentRun[]
 
   @@index([organizationId])
   @@index([organizationId, status])
+  @@index([createdById])
+  @@index([assignedToId])
 }
 
 model AgentRun {
