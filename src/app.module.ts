@@ -5,6 +5,9 @@ import { HealthModule } from './health/health.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { UsersModule } from './users/users.module';
 import { IncidentsModule } from './incidents/incidents.module';
+import { DocumentsModule } from './documents/documents.module';
+import { ToolsModule } from './tools/tools.module';
+import { WorkflowsModule } from './workflows/workflows.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
@@ -17,6 +20,9 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
     OrganizationsModule,
     UsersModule,
     IncidentsModule,
+    DocumentsModule,
+    ToolsModule,
+    WorkflowsModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),

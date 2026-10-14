@@ -91,12 +91,13 @@ model Document {
 }
 
 model DocumentChunk {
-  id         String   @id @default(uuid())
+  id         String                       @id @default(uuid())
   documentId String
   content    String
   chunkIndex Int
   metadata   Json?
-  createdAt  DateTime @default(now())
+  embedding  Unsupported("vector(1536)")?
+  createdAt  DateTime                     @default(now())
 
   document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
