@@ -1,85 +1,88 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# DevOpsAI
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS API for organization-scoped incident management. Users register into an organization, sign in with a JWT, and work with incidents, runbooks, and operational tools inside that organization.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features in this tree
 
-## Description
+- Register and log in. Passwords are hashed with bcrypt. Login returns a bearer token.
+- Organizations, users, and memberships with roles `ADMIN`, `ENGINEER`, and `VIEWER`.
+- Incidents with severity, priority, and status. Create, assign (admin), and investigate.
+- Documents stored per organization, split into chunks, and embedded with OpenAI `text-embedding-3-small` (1536 dimensions) in PostgreSQL via pgvector. Search and incident context return matching chunks.
+- In-process tools: `log_lookup`, `runbook_search`, `deployment_info`, and `ticketing`. `log_lookup`, `deployment_info`, and `ticketing` return fixture data. `runbook_search` queries stored chunks.
+- Optional n8n webhook dispatch (`N8N_WEBHOOK_URL`). Incident actions and `POST /api/v1/incidents/:id/workflows/ticket` record an audit log. If the webhook URL is unset, the dispatch is skipped and audited.
+- Health check.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+There is no MCP server, Terraform, or Go worker in this repository.
 
-## Project setup
+## Technologies
 
-```bash
-$ pnpm install
-```
+- NestJS 10 and TypeScript
+- Prisma 7 with the PostgreSQL driver adapter (`@prisma/adapter-pg`)
+- PostgreSQL (pgvector for chunk embeddings)
+- JWT (`@nestjs/jwt`, Passport)
+- class-validator and class-transformer
+- Swagger (`@nestjs/swagger`)
+- pnpm (`pnpm-lock.yaml`)
 
-## Compile and run the project
+## Local setup
+
+Prerequisites: Node.js, pnpm, and PostgreSQL with the `vector` extension (the embedding migration runs `CREATE EXTENSION IF NOT EXISTS vector`).
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+pnpm install
 ```
 
-## Run tests
+`.gitignore` ignores `.env` and `.env.*`. Put configuration in a local `.env` and do not commit secrets. There is no `.env.example` in the repo. The process reads these names:
+
+| Variable | Used for |
+| --- | --- |
+| `DATABASE_URL` | Prisma config and the app's Postgres connection |
+| `JWT_SECRET` | Signing and verifying access tokens (required) |
+| `JWT_EXPIRES_IN` | Token lifetime (defaults to `15m`) |
+| `OPENAI_API_KEY` | Document and incident embeddings (requests fail with 503 if unset) |
+| `N8N_WEBHOOK_URL` | Optional workflow webhook (skipped when unset) |
+
+`prisma.config.ts` points the CLI at `prisma/schema.prisma`, `prisma/migrations`, and `DATABASE_URL`. This repo has no Prisma npm scripts; use the CLI:
 
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+pnpm exec prisma generate
+pnpm exec prisma migrate dev
 ```
 
-## Resources
+## Run and test
 
-Check out a few resources that may come in handy when working with NestJS:
+```bash
+pnpm start:dev
+pnpm test
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+The API listens on port 3000 with the global prefix `api/v1`. Interactive docs are at [http://localhost:3000/docs](http://localhost:3000/docs).
 
-## Support
+`POST /api/v1/auth/register` and `POST /api/v1/auth/login` are public. Other routes expect `Authorization: Bearer <token>`.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Other scripts: `pnpm start`, `pnpm start:prod` (runs `dist/main` after `pnpm build`), `pnpm test:e2e`, `pnpm test:cov`.
 
-## Stay in touch
+## Architecture
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Modules registered in `AppModule`: Auth, Users, Organizations, Incidents, Documents, Tools, Workflows, Health, and Prisma. `ConfigModule` is global. `JwtAuthGuard` is the global guard; handlers marked `@Public()` skip it.
 
-## License
+```mermaid
+flowchart LR
+  Client --> API["Nest API /api/v1"]
+  API --> JWT["JWT guard"]
+  JWT --> Membership["OrganizationMember lookup"]
+  Membership --> OrgData["Incidents, documents, tools, audit logs"]
+  OrgData --> DB[(PostgreSQL)]
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+A request is authenticated from the bearer token. The JWT subject is the user id. Incident, document, and tool handlers do not take an organization id from the client. They load the user's `OrganizationMember` row and read or write only that organization. `OrganizationRolesGuard` checks the caller's role on `POST /api/v1/organizations/:organizationId/members`. Role decorators on incident, document, and tool routes restrict `ADMIN`, `ENGINEER`, and `VIEWER`.
+
+## Schema
+
+- **Organization** — tenant. Owns members, documents, incidents, agent runs, and audit logs.
+- **User** — email, optional name, password hash. Can belong to organizations and create or be assigned incidents.
+- **OrganizationMember** — links a user to an organization with a role (`ADMIN`, `ENGINEER`, `VIEWER`, default `VIEWER`). One membership per user per organization.
+- **Document** / **DocumentChunk** — organization-owned text. Chunks store content, index, optional JSON metadata, and an optional 1536-dimension embedding.
+- **Incident** — title, description, severity (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), priority (`P1`–`P4`), status (`OPEN`, `INVESTIGATING`, `RESOLVED`), creator, and optional assignee.
+- **AgentRun** — record of an agent invocation, optionally tied to an incident (`agentName`, `status`, JSON input/output).
+- **AuditLog** — organization action, resource, optional user, and JSON metadata.
